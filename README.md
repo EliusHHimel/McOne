@@ -25,7 +25,9 @@ git clone https://github.com/EliusHHimel/McOne
 ```
 
 Then open the folder
-```cd McOne```
+```
+cd McOne
+```
 
 ### Linux / macOS
 
