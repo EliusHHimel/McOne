@@ -1,0 +1,19 @@
+# Server directory created by setup script
+server/
+
+# Temporary files
+*.log
+*.tmp
+*.temp
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
