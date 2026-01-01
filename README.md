@@ -11,7 +11,8 @@ McOne is a simple, cross-platform Minecraft server setup utility that automates 
 - 🎯 **Smart Version Selection**: Automatically fetches latest 5 versions from official sources
 - ✍️ **Manual Version Entry**: Enter any Minecraft version manually with automatic search
 - 🔄 **Multi-Source Support**: Falls back to alternative sources if official API is unavailable
-- ☕ **Java Detection**: Automatically detects Java installation and provides guidance
+- ☕ **Smart Java Version Detection**: Automatically determines and installs the correct Java version for your selected Minecraft version
+- ✅ **Java Compatibility Check**: Verifies your Java installation meets the requirements before downloading
 - ⚙️ **Auto-Configuration**: Creates all necessary configuration files
 - 📦 **Always Up-to-Date**: Dynamically fetches the latest versions, no hardcoded lists
 - 🎮 **Ready to Play**: Server is ready to start immediately after setup
@@ -47,9 +48,14 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 
 ## Prerequisites
 
-- **Java 17 or higher** is required to run Minecraft servers
+- **Java** - Version depends on the Minecraft server version you choose:
+  - Minecraft 1.21+ → **Java 21**
+  - Minecraft 1.20.5+ → **Java 21**
+  - Minecraft 1.18-1.20.4 → **Java 17**
+  - Minecraft 1.17 → **Java 17**
+  - Minecraft 1.12-1.16.5 → **Java 11**
 - **Python 3** (optional but recommended) - Enables dynamic version fetching from official sources
-- The setup script will guide you through installing Java if it's not already installed
+- The setup script will automatically detect the required Java version and verify compatibility
 - On Linux, you may need `sudo` privileges for automatic Java installation
 
 ## What Does It Do?
@@ -60,12 +66,14 @@ The setup script will:
 2. ✅ **Fetch the latest 5 Minecraft versions from official Mojang API** (requires Python 3)
 3. ✅ Display an interactive menu to select a version or enter one manually
 4. ✅ Search multiple sources to find your specified version
-5. ✅ Check for Java installation (offers to install if missing on Linux/macOS)
-6. ✅ Create a `server` directory
-7. ✅ Download your chosen Minecraft server JAR file
-8. ✅ Accept the Minecraft EULA
-9. ✅ Create a default `server.properties` configuration
-10. ✅ Generate launch scripts for your platform
+5. ✅ **Automatically determine the required Java version for your selected Minecraft version**
+6. ✅ **Verify that your installed Java version is compatible**
+7. ✅ Check for Java installation (offers to install the correct version if missing on Linux/macOS)
+8. ✅ Create a `server` directory
+9. ✅ Download your chosen Minecraft server JAR file
+10. ✅ Accept the Minecraft EULA
+11. ✅ Create a default `server.properties` configuration
+12. ✅ Generate launch scripts for your platform
 
 ## Version Selection
 

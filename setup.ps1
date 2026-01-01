@@ -207,15 +207,87 @@ Select-MinecraftVersion
 
 Write-Host ""
 
-# Check if Java is installed
+# Determine required Java version based on Minecraft version
+function Get-RequiredJavaVersion {
+    param([string]$MinecraftVersion)
+    
+    if ($MinecraftVersion -match '^(\d+)\.(\d+)(\.(\d+))?') {
+        $major = [int]$Matches[1]
+        $minor = [int]$Matches[2]
+        $patch = if ($Matches[4]) { [int]$Matches[4] } else { 0 }
+        
+        if ($major -eq 1) {
+            if ($minor -ge 21) {
+                return 21
+            } elseif ($minor -eq 20 -and $patch -ge 5) {
+                return 21
+            } elseif ($minor -ge 18) {
+                return 17
+            } elseif ($minor -eq 17) {
+                return 17
+            } elseif ($minor -ge 12) {
+                return 11
+            } else {
+                return 8
+            }
+        } else {
+            return 21
+        }
+    }
+    
+    return 21
+}
+
+# Get major Java version from version string
+function Get-JavaMajorVersion {
+    param([string]$VersionString)
+    
+    if ($VersionString -match '(?:version\s+)?"?(\d+)\.(\d+)') {
+        $first = [int]$Matches[1]
+        $second = [int]$Matches[2]
+        
+        if ($first -eq 1) {
+            return $second
+        } else {
+            return $first
+        }
+    } elseif ($VersionString -match '"?(\d+)') {
+        return [int]$Matches[1]
+    }
+    
+    return 0
+}
+
+# Check if Java is installed and compatible
 Write-Host "Checking for Java installation..."
+
+$requiredJava = Get-RequiredJavaVersion -MinecraftVersion $MINECRAFT_VERSION
+Write-Host "Minecraft $MINECRAFT_VERSION requires Java $requiredJava or higher" -ForegroundColor Cyan
+
 try {
-    $javaVersion = java -version 2>&1 | Select-Object -First 1
-    Write-Host "[OK] Java is installed: $javaVersion" -ForegroundColor Green
+    $javaVersionOutput = java -version 2>&1 | Select-Object -First 3 | Out-String
+    $javaVersionString = ($javaVersionOutput -split "`n")[0]
+    $javaMajor = Get-JavaMajorVersion -VersionString $javaVersionString
+    
+    Write-Host "[OK] Java is installed: $javaVersionString" -ForegroundColor Green
+    Write-Host "    Detected Java $javaMajor" -ForegroundColor Green
+    
+    if ($javaMajor -ge $requiredJava) {
+        Write-Host "[OK] Java version is compatible" -ForegroundColor Green
+    } else {
+        Write-Host "[ERROR] Java $javaMajor is too old for Minecraft $MINECRAFT_VERSION" -ForegroundColor Red
+        Write-Host "        Required: Java $requiredJava or higher" -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "Please install Java $requiredJava or higher from:" -ForegroundColor Yellow
+        Write-Host "https://adoptium.net/" -ForegroundColor Yellow
+        Write-Host ""
+        Read-Host "Press Enter to exit"
+        exit 1
+    }
 } catch {
     Write-Host "[ERROR] Java is not installed!" -ForegroundColor Red
     Write-Host ""
-    Write-Host "Please install Java 17 or higher from:" -ForegroundColor Yellow
+    Write-Host "Please install Java $requiredJava or higher from:" -ForegroundColor Yellow
     Write-Host "https://adoptium.net/" -ForegroundColor Yellow
     Write-Host ""
     Read-Host "Press Enter to exit"

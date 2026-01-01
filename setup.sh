@@ -219,56 +219,136 @@ detect_os() {
     echo -e "${GREEN}Detected OS: $OS${NC}"
 }
 
-# Check if Java is installed
+# Determine required Java version based on Minecraft version
+get_required_java_version() {
+    local mc_version=$1
+    local major minor patch
+    
+    # Parse version number (handle versions like 1.21.11, 1.20.4, 1.19, etc.)
+    if [[ $mc_version =~ ^([0-9]+)\.([0-9]+)(\.([0-9]+))?$ ]]; then
+        major="${BASH_REMATCH[1]}"
+        minor="${BASH_REMATCH[2]}"
+        patch="${BASH_REMATCH[4]:-0}"
+    else
+        # Default to Java 21 for unknown versions
+        echo "21"
+        return
+    fi
+    
+    # Determine required Java version based on Minecraft version
+    if [[ $major -eq 1 ]]; then
+        if [[ $minor -ge 21 ]]; then
+            # Minecraft 1.21+ requires Java 21
+            echo "21"
+        elif [[ $minor -eq 20 ]] && [[ $patch -ge 5 ]]; then
+            # Minecraft 1.20.5+ requires Java 21
+            echo "21"
+        elif [[ $minor -ge 18 ]]; then
+            # Minecraft 1.18-1.20.4 requires Java 17
+            echo "17"
+        elif [[ $minor -eq 17 ]]; then
+            # Minecraft 1.17 requires Java 16 or 17
+            echo "17"
+        elif [[ $minor -ge 12 ]]; then
+            # Minecraft 1.12-1.16.5 requires Java 8 or 11
+            echo "11"
+        else
+            # Older versions require Java 8
+            echo "8"
+        fi
+    else
+        # For versions 2.0+, assume Java 21
+        echo "21"
+    fi
+}
+
+# Get major version number from Java version string
+get_java_major_version() {
+    local version_string=$1
+    
+    # Handle different version formats:
+    # "1.8.0_XXX" -> 8
+    # "11.0.XX" -> 11
+    # "17.0.XX" -> 17
+    # "21.0.XX" -> 21
+    
+    if [[ $version_string =~ ^1\.([0-9]+) ]]; then
+        echo "${BASH_REMATCH[1]}"
+    elif [[ $version_string =~ ^([0-9]+) ]]; then
+        echo "${BASH_REMATCH[1]}"
+    else
+        echo "0"
+    fi
+}
+
+# Check if Java is installed and compatible
 check_java() {
     echo ""
     echo "Checking for Java installation..."
+    
+    local required_java=$(get_required_java_version "$MINECRAFT_VERSION")
+    echo -e "${CYAN}Minecraft $MINECRAFT_VERSION requires Java $required_java or higher${NC}"
+    
     if command -v java &> /dev/null; then
         JAVA_VERSION=$(java -version 2>&1 | awk -F '"' '/version/ {print $2}')
-        echo -e "${GREEN}Java is installed: $JAVA_VERSION${NC}"
-        return 0
+        local java_major=$(get_java_major_version "$JAVA_VERSION")
+        
+        echo -e "${GREEN}Java is installed: $JAVA_VERSION (Java $java_major)${NC}"
+        
+        # Check if installed Java version meets requirements
+        if [ "$java_major" -ge "$required_java" ]; then
+            echo -e "${GREEN}✓ Java version is compatible${NC}"
+            return 0
+        else
+            echo -e "${RED}✗ Java $java_major is too old for Minecraft $MINECRAFT_VERSION${NC}"
+            echo -e "${YELLOW}  Required: Java $required_java or higher${NC}"
+            return 1
+        fi
     else
         echo -e "${YELLOW}Java is not installed!${NC}"
         return 1
     fi
 }
 
-# Install Java based on OS
+# Install Java based on OS and required version
 install_java() {
+    local required_java=$(get_required_java_version "$MINECRAFT_VERSION")
+    
     echo ""
-    echo "Attempting to install Java..."
+    echo "Attempting to install Java $required_java..."
     
     if [[ "$OS" == "linux" ]]; then
         if command -v apt-get &> /dev/null; then
-            echo "Using apt-get to install Java..."
+            echo "Using apt-get to install Java $required_java..."
             sudo apt-get update
-            sudo apt-get install -y openjdk-17-jre-headless
+            sudo apt-get install -y "openjdk-${required_java}-jre-headless"
         elif command -v yum &> /dev/null; then
-            echo "Using yum to install Java..."
-            sudo yum install -y java-17-openjdk-headless
+            echo "Using yum to install Java $required_java..."
+            sudo yum install -y "java-${required_java}-openjdk-headless"
         elif command -v dnf &> /dev/null; then
-            echo "Using dnf to install Java..."
-            sudo dnf install -y java-17-openjdk-headless
+            echo "Using dnf to install Java $required_java..."
+            sudo dnf install -y "java-${required_java}-openjdk-headless"
         elif command -v pacman &> /dev/null; then
-            echo "Using pacman to install Java..."
-            sudo pacman -S --noconfirm jre17-openjdk-headless
+            echo "Using pacman to install Java $required_java..."
+            sudo pacman -S --noconfirm "jre${required_java}-openjdk-headless"
         else
-            echo -e "${RED}Could not detect package manager. Please install Java 17 or higher manually.${NC}"
+            echo -e "${RED}Could not detect package manager. Please install Java $required_java or higher manually.${NC}"
             echo "Visit: https://adoptium.net/"
             exit 1
         fi
     elif [[ "$OS" == "macos" ]]; then
         if command -v brew &> /dev/null; then
-            echo "Using Homebrew to install Java..."
-            brew install openjdk@17
+            echo "Using Homebrew to install Java $required_java..."
+            brew install "openjdk@${required_java}"
         else
-            echo -e "${YELLOW}Homebrew not found. Please install Java manually from:${NC}"
+            echo -e "${YELLOW}Homebrew not found. Please install Java $required_java or higher manually from:${NC}"
             echo "https://adoptium.net/"
             exit 1
         fi
     else
         echo -e "${RED}Automatic Java installation not supported on this OS.${NC}"
-        echo "Please install Java 17 or higher manually from: https://adoptium.net/"
+        local required_java=$(get_required_java_version "$MINECRAFT_VERSION")
+        echo "Please install Java $required_java or higher manually from: https://adoptium.net/"
         exit 1
     fi
 }
@@ -377,16 +457,19 @@ main() {
     select_version
     
     if ! check_java; then
-        read -p "Do you want to install Java automatically? (y/n) " -n 1 -r
+        local required_java=$(get_required_java_version "$MINECRAFT_VERSION")
+        read -p "Do you want to install Java $required_java automatically? (y/n) " -n 1 -r
         echo
         if [[ $REPLY =~ ^[Yy]$ ]]; then
             install_java
             if ! check_java; then
-                echo -e "${RED}Java installation failed. Please install manually.${NC}"
+                echo -e "${RED}Java installation failed. Please install Java $required_java or higher manually.${NC}"
+                echo "Visit: https://adoptium.net/"
                 exit 1
             fi
         else
-            echo -e "${YELLOW}Please install Java 17 or higher and run this script again.${NC}"
+            echo -e "${YELLOW}Please install Java $required_java or higher and run this script again.${NC}"
+            echo "Visit: https://adoptium.net/"
             exit 1
         fi
     fi

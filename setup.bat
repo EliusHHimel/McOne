@@ -151,16 +151,54 @@ echo [OK] Selected version: %MINECRAFT_VERSION%
 echo.
 
 :check_java
-REM Check if Java is installed
+REM Check if Java is installed and compatible
 echo Checking for Java installation...
+
+REM Determine required Java version for Minecraft version
+set REQUIRED_JAVA=17
+if "%MINECRAFT_VERSION:~0,4%"=="1.21" set REQUIRED_JAVA=21
+if "%MINECRAFT_VERSION:~0,6%"=="1.20.5" set REQUIRED_JAVA=21
+if "%MINECRAFT_VERSION:~0,6%"=="1.20.6" set REQUIRED_JAVA=21
+if "%MINECRAFT_VERSION:~0,6%"=="1.20.7" set REQUIRED_JAVA=21
+if "%MINECRAFT_VERSION:~0,6%"=="1.20.8" set REQUIRED_JAVA=21
+if "%MINECRAFT_VERSION:~0,6%"=="1.20.9" set REQUIRED_JAVA=21
+if "%MINECRAFT_VERSION:~0,4%"=="1.18" set REQUIRED_JAVA=17
+if "%MINECRAFT_VERSION:~0,4%"=="1.19" set REQUIRED_JAVA=17
+if "%MINECRAFT_VERSION:~0,5%"=="1.20." set REQUIRED_JAVA=17
+if "%MINECRAFT_VERSION%"=="1.20" set REQUIRED_JAVA=17
+if "%MINECRAFT_VERSION:~0,4%"=="1.17" set REQUIRED_JAVA=17
+if "%MINECRAFT_VERSION:~0,4%"=="1.12" set REQUIRED_JAVA=11
+if "%MINECRAFT_VERSION:~0,4%"=="1.13" set REQUIRED_JAVA=11
+if "%MINECRAFT_VERSION:~0,4%"=="1.14" set REQUIRED_JAVA=11
+if "%MINECRAFT_VERSION:~0,4%"=="1.15" set REQUIRED_JAVA=11
+if "%MINECRAFT_VERSION:~0,4%"=="1.16" set REQUIRED_JAVA=11
+
+echo Minecraft %MINECRAFT_VERSION% requires Java %REQUIRED_JAVA% or higher
+
 java -version >nul 2>&1
-if %ERRORLEVEL% EQU 0 (
-    echo [OK] Java is installed
-    java -version
-) else (
+if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] Java is not installed!
     echo.
-    echo Please install Java 17 or higher from:
+    echo Please install Java %REQUIRED_JAVA% or higher from:
+    echo https://adoptium.net/
+    echo.
+    pause
+    exit /b 1
+)
+
+REM Get Java version using PowerShell
+for /f "tokens=*" %%i in ('powershell -Command "& {try { $v = (java -version 2>&1 | Select-Object -First 1); if ($v -match '\"(\d+)\.(\d+)') { if ([int]$Matches[1] -eq 1) { [int]$Matches[2] } else { [int]$Matches[1] } } elseif ($v -match '\"(\d+)') { [int]$Matches[1] } else { 0 } } catch { 0 }}"') do set JAVA_MAJOR=%%i
+
+echo [OK] Java is installed (Java %JAVA_MAJOR%)
+java -version
+
+if %JAVA_MAJOR% GEQ %REQUIRED_JAVA% (
+    echo [OK] Java version is compatible
+) else (
+    echo [ERROR] Java %JAVA_MAJOR% is too old for Minecraft %MINECRAFT_VERSION%
+    echo         Required: Java %REQUIRED_JAVA% or higher
+    echo.
+    echo Please install Java %REQUIRED_JAVA% or higher from:
     echo https://adoptium.net/
     echo.
     pause
