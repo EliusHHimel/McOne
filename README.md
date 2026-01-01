@@ -18,6 +18,14 @@ McOne is a simple, cross-platform Minecraft server setup utility that automates 
 - 🎮 **Ready to Play**: Server is ready to start immediately after setup
 
 ## Quick Start
+First, clone the repository using the command below or download the repository.
+
+```bash
+git clone https://github.com/EliusHHimel/McOne
+```
+
+Then open the folder
+```cd McOne```
 
 ### Linux / macOS
 
