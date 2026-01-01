@@ -10,6 +10,8 @@ echo.
 set SCRIPT_DIR=%~dp0
 set SERVER_DIR=%SCRIPT_DIR%server
 set MINECRAFT_VERSION=1.20.4
+REM Note: Update this URL when new versions are released
+REM Get the latest server URL from: https://www.minecraft.net/en-us/download/server
 set DOWNLOAD_URL=https://piston-data.mojang.com/v1/objects/8dd1a28015f51b1803213892b50b7b4fc76e594d/server.jar
 
 REM Check if Java is installed
@@ -53,6 +55,21 @@ if exist "server.jar" (
 )
 
 REM Accept EULA
+echo.
+echo =========================================
+echo Minecraft End User License Agreement
+echo =========================================
+echo.
+echo To run a Minecraft server, you must agree to the Minecraft EULA.
+echo Please review it at: https://aka.ms/MinecraftEULA
+echo.
+set /p EULA_ACCEPT="Do you agree to the Minecraft EULA? (yes/no): "
+if /i not "%EULA_ACCEPT%"=="yes" if /i not "%EULA_ACCEPT%"=="y" (
+    echo [ERROR] You must accept the EULA to run a Minecraft server.
+    pause
+    exit /b 1
+)
+
 echo.
 echo Creating eula.txt...
 (

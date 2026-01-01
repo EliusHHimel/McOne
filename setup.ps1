@@ -8,6 +8,8 @@ $ErrorActionPreference = "Stop"
 $SCRIPT_DIR = $PSScriptRoot
 $SERVER_DIR = Join-Path $SCRIPT_DIR "server"
 $MINECRAFT_VERSION = "1.20.4"
+# Note: Update this URL when new versions are released
+# Get the latest server URL from: https://www.minecraft.net/en-us/download/server
 $DOWNLOAD_URL = "https://piston-data.mojang.com/v1/objects/8dd1a28015f51b1803213892b50b7b4fc76e594d/server.jar"
 
 Write-Host "=========================================" -ForegroundColor Cyan
@@ -56,6 +58,21 @@ try {
 }
 
 # Accept EULA
+Write-Host ""
+Write-Host "=========================================" -ForegroundColor Cyan
+Write-Host "Minecraft End User License Agreement" -ForegroundColor Cyan
+Write-Host "=========================================" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "To run a Minecraft server, you must agree to the Minecraft EULA."
+Write-Host "Please review it at: https://aka.ms/MinecraftEULA" -ForegroundColor Yellow
+Write-Host ""
+$eulaAccept = Read-Host "Do you agree to the Minecraft EULA? (yes/no)"
+if ($eulaAccept -notmatch '^(yes|y)$') {
+    Write-Host "[ERROR] You must accept the EULA to run a Minecraft server." -ForegroundColor Red
+    Read-Host "Press Enter to exit"
+    exit 1
+}
+
 Write-Host ""
 Write-Host "Creating eula.txt..."
 $eulaContent = @"

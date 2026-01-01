@@ -9,6 +9,8 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SERVER_DIR="$SCRIPT_DIR/server"
 MINECRAFT_VERSION="1.20.4"
+# Note: Update this URL when new versions are released
+# Get the latest server URL from: https://www.minecraft.net/en-us/download/server
 DOWNLOAD_URL="https://piston-data.mojang.com/v1/objects/8dd1a28015f51b1803213892b50b7b4fc76e594d/server.jar"
 
 # Colors for output
@@ -124,6 +126,20 @@ download_server() {
 # Accept EULA
 accept_eula() {
     echo ""
+    echo "========================================="
+    echo "Minecraft End User License Agreement"
+    echo "========================================="
+    echo ""
+    echo "To run a Minecraft server, you must agree to the Minecraft EULA."
+    echo "Please review it at: https://aka.ms/MinecraftEULA"
+    echo ""
+    read -p "Do you agree to the Minecraft EULA? (yes/no): " -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy][Ee][Ss]$ ]] && [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo -e "${RED}You must accept the EULA to run a Minecraft server.${NC}"
+        exit 1
+    fi
+    
     echo "Creating eula.txt..."
     echo "# By changing the setting below to TRUE you are indicating your agreement to our EULA (https://aka.ms/MinecraftEULA)." > eula.txt
     echo "eula=true" >> eula.txt
