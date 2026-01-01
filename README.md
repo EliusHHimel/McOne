@@ -8,10 +8,12 @@ McOne is a simple, cross-platform Minecraft server setup utility that automates 
 
 - 🚀 **One-Command Setup**: Get your server running with a single command
 - 🌍 **Cross-Platform**: Works on Linux, macOS, and Windows
-- 🎯 **Version Selection**: Choose from multiple Minecraft server versions (1.18.1 - 1.20.4)
+- 🎯 **Smart Version Selection**: Automatically fetches latest 5 versions from official sources
+- ✍️ **Manual Version Entry**: Enter any Minecraft version manually with automatic search
+- 🔄 **Multi-Source Support**: Falls back to alternative sources if official API is unavailable
 - ☕ **Java Detection**: Automatically detects Java installation and provides guidance
 - ⚙️ **Auto-Configuration**: Creates all necessary configuration files
-- 📦 **Latest Version**: Downloads the latest stable Minecraft server or your chosen version
+- 📦 **Always Up-to-Date**: Dynamically fetches the latest versions, no hardcoded lists
 - 🎮 **Ready to Play**: Server is ready to start immediately after setup
 
 ## Quick Start
@@ -46,6 +48,7 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ## Prerequisites
 
 - **Java 17 or higher** is required to run Minecraft servers
+- **Python 3** (optional but recommended) - Enables dynamic version fetching from official sources
 - The setup script will guide you through installing Java if it's not already installed
 - On Linux, you may need `sudo` privileges for automatic Java installation
 
@@ -54,31 +57,34 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 The setup script will:
 
 1. ✅ Detect your operating system
-2. ✅ Prompt you to select a Minecraft server version (or use the latest)
-3. ✅ Check for Java installation (offers to install if missing on Linux/macOS)
-4. ✅ Create a `server` directory
-5. ✅ Download your chosen Minecraft server JAR file
-6. ✅ Accept the Minecraft EULA
-7. ✅ Create a default `server.properties` configuration
-8. ✅ Generate launch scripts for your platform
+2. ✅ **Fetch the latest 5 Minecraft versions from official Mojang API** (requires Python 3)
+3. ✅ Display an interactive menu to select a version or enter one manually
+4. ✅ Search multiple sources to find your specified version
+5. ✅ Check for Java installation (offers to install if missing on Linux/macOS)
+6. ✅ Create a `server` directory
+7. ✅ Download your chosen Minecraft server JAR file
+8. ✅ Accept the Minecraft EULA
+9. ✅ Create a default `server.properties` configuration
+10. ✅ Generate launch scripts for your platform
 
-## Supported Minecraft Versions
+## Version Selection
 
-The setup script supports the following Minecraft server versions:
-- 1.20.4 (Latest)
-- 1.20.3
-- 1.20.2
-- 1.20.1
-- 1.20
-- 1.19.4
-- 1.19.3
-- 1.19.2
-- 1.19.1
-- 1.19
-- 1.18.2
-- 1.18.1
+The setup script offers two modes:
 
-During setup, you'll be prompted to select a version from an interactive menu.
+### With Python 3 (Recommended)
+- Automatically fetches the **latest 5 versions** from Mojang's official API
+- Displays them in an interactive menu
+- Option to **enter any version manually** (e.g., 1.19.4, 1.18.2, etc.)
+- Searches multiple sources including:
+  - Mojang's official version manifest
+  - jars.vexyhost.com (fallback)
+  - Direct URL patterns
+- Caches version data for 24 hours to speed up subsequent runs
+
+### Without Python 3 (Fallback)
+- Uses a hardcoded list of latest 5 stable versions
+- Still fully functional for common versions
+- Updates periodically with script updates
 
 ## Starting Your Server
 

@@ -7,23 +7,17 @@ $ErrorActionPreference = "Stop"
 
 $SCRIPT_DIR = $PSScriptRoot
 $SERVER_DIR = Join-Path $SCRIPT_DIR "server"
+$VERSION_FETCHER = Join-Path $SCRIPT_DIR "fetch_versions.py"
 $MINECRAFT_VERSION = ""
 $DOWNLOAD_URL = ""
 
-# Version mappings
-$VERSION_URLS = @{
+# Fallback version mappings
+$FALLBACK_VERSIONS = @{
     "1.20.4" = "https://piston-data.mojang.com/v1/objects/8dd1a28015f51b1803213892b50b7b4fc76e594d/server.jar"
     "1.20.3" = "https://piston-data.mojang.com/v1/objects/4fb536bfd4a83d61cdbaf684b8d311e66e7d4c49/server.jar"
     "1.20.2" = "https://piston-data.mojang.com/v1/objects/5b868151bd02b41319f54c8d4061b8cae84e665c/server.jar"
     "1.20.1" = "https://piston-data.mojang.com/v1/objects/84194a2f286ef7c14ed7ce0090dba59902951553/server.jar"
     "1.20"   = "https://piston-data.mojang.com/v1/objects/15c777e2cfe0556eef19aab534b186c0c6f277e1/server.jar"
-    "1.19.4" = "https://piston-data.mojang.com/v1/objects/8f3112a1049751cc472ec13e397eade5336ca7ae/server.jar"
-    "1.19.3" = "https://piston-data.mojang.com/v1/objects/c9df48efed58511cdd0213c56b9013a7b5c9ac1f/server.jar"
-    "1.19.2" = "https://piston-data.mojang.com/v1/objects/f69c284232d7c7580bd89a5a4931c3581eae1378/server.jar"
-    "1.19.1" = "https://piston-data.mojang.com/v1/objects/8399e1211e95faa421c1507b322dbeae86d604df/server.jar"
-    "1.19"   = "https://piston-data.mojang.com/v1/objects/e00c4052dac1d59a1188b2aa9d5a87113aaf1122/server.jar"
-    "1.18.2" = "https://piston-data.mojang.com/v1/objects/c8f83c5655308435b3dcf03c06d9fe8740a77469/server.jar"
-    "1.18.1" = "https://piston-data.mojang.com/v1/objects/125e5adf40c659fd3bce3e66e67a16bb49ecc1b9/server.jar"
 }
 
 Write-Host "=========================================" -ForegroundColor Cyan
@@ -31,48 +25,185 @@ Write-Host "  McOne - Minecraft Server Setup" -ForegroundColor Cyan
 Write-Host "=========================================" -ForegroundColor Cyan
 Write-Host ""
 
+# Check if Python 3 is available
+function Test-Python {
+    try {
+        $null = python --version 2>&1
+        return $true
+    } catch {
+        try {
+            $null = python3 --version 2>&1
+            return $true
+        } catch {
+            return $false
+        }
+    }
+}
+
+# Get Python command
+function Get-PythonCmd {
+    try {
+        $null = python3 --version 2>&1
+        return "python3"
+    } catch {
+        return "python"
+    }
+}
+
 # Select Minecraft version
-Write-Host ""
-Write-Host "Available Minecraft Versions:" -ForegroundColor Cyan
-Write-Host "=========================================" -ForegroundColor Cyan
-
-$versions = $VERSION_URLS.Keys | Sort-Object -Descending { [Version]($_ -replace '^(\d+\.\d+(\.\d+)?).*', '$1') }
-$i = 1
-foreach ($version in $versions) {
-    if ($i -eq 1) {
-        Write-Host "$i) $version (Latest)" -ForegroundColor Green
+function Select-MinecraftVersion {
+    Write-Host ""
+    
+    $pythonAvailable = Test-Python
+    $useFallback = $false
+    
+    if ($pythonAvailable -and (Test-Path $VERSION_FETCHER)) {
+        Write-Host "Fetching available Minecraft versions..." -ForegroundColor Cyan
+        
+        $pythonCmd = Get-PythonCmd
+        try {
+            $versionsJson = & $pythonCmd $VERSION_FETCHER latest 5 2>$null | ConvertFrom-Json
+            
+            if ($versionsJson -and $versionsJson.versions) {
+                $versions = $versionsJson.versions
+                
+                Write-Host ""
+                Write-Host "Available Minecraft Versions (Latest 5):" -ForegroundColor Cyan
+                Write-Host "=========================================" -ForegroundColor Cyan
+                
+                for ($i = 0; $i -lt $versions.Count; $i++) {
+                    if ($i -eq 0) {
+                        Write-Host "$($i+1)) $($versions[$i].id) (Latest)" -ForegroundColor Green
+                    } else {
+                        Write-Host "$($i+1)) $($versions[$i].id)"
+                    }
+                }
+                Write-Host "6) Enter version manually" -ForegroundColor Yellow
+                Write-Host "=========================================" -ForegroundColor Cyan
+                Write-Host ""
+                
+                while ($true) {
+                    $choice = Read-Host "Select version number (1-6) or press Enter for latest"
+                    
+                    if ([string]::IsNullOrWhiteSpace($choice)) {
+                        $choice = "1"
+                    }
+                    
+                    # Check for manual entry
+                    if ($choice -eq "6") {
+                        while ($true) {
+                            $manualVersion = Read-Host "Enter Minecraft version (e.g., 1.19.4)"
+                            
+                            if (![string]::IsNullOrWhiteSpace($manualVersion)) {
+                                Write-Host "Searching for version $manualVersion..." -ForegroundColor Cyan
+                                
+                                try {
+                                    $versionInfo = & $pythonCmd $VERSION_FETCHER find $manualVersion 2>$null | ConvertFrom-Json
+                                    
+                                    if ($versionInfo -and !$versionInfo.error -and $versionInfo.url) {
+                                        $script:MINECRAFT_VERSION = $manualVersion
+                                        $script:DOWNLOAD_URL = $versionInfo.url
+                                        Write-Host "[OK] Found version: $manualVersion" -ForegroundColor Green
+                                        return
+                                    } else {
+                                        Write-Host "[ERROR] Version $manualVersion was not found." -ForegroundColor Red
+                                        Write-Host "The version might be incorrect or unavailable." -ForegroundColor Yellow
+                                        
+                                        $retry = Read-Host "Try another version? (y/n)"
+                                        if ($retry -notmatch '^[Yy]') {
+                                            break
+                                        }
+                                    }
+                                } catch {
+                                    Write-Host "[ERROR] Failed to search for version." -ForegroundColor Red
+                                    $retry = Read-Host "Try another version? (y/n)"
+                                    if ($retry -notmatch '^[Yy]') {
+                                        break
+                                    }
+                                }
+                            }
+                        }
+                        continue
+                    }
+                    
+                    # Validate numeric choice
+                    try {
+                        $choiceNum = [int]$choice
+                        if ($choiceNum -ge 1 -and $choiceNum -le 5) {
+                            $selectedVersion = $versions[$choiceNum - 1]
+                            $script:MINECRAFT_VERSION = $selectedVersion.id
+                            $script:DOWNLOAD_URL = $selectedVersion.url
+                            Write-Host "[OK] Selected version: $($script:MINECRAFT_VERSION)" -ForegroundColor Green
+                            return
+                        } else {
+                            Write-Host "[ERROR] Invalid selection. Please enter a number between 1 and 6" -ForegroundColor Red
+                        }
+                    } catch {
+                        Write-Host "[ERROR] Invalid input. Please enter a number between 1 and 6" -ForegroundColor Red
+                    }
+                }
+            } else {
+                $useFallback = $true
+            }
+        } catch {
+            Write-Host "Failed to fetch versions from official sources." -ForegroundColor Yellow
+            $useFallback = $true
+        }
     } else {
-        Write-Host "$i) $version"
+        if (!$pythonAvailable) {
+            Write-Host "Python is not installed. Using fallback version list." -ForegroundColor Yellow
+        }
+        $useFallback = $true
     }
-    $i++
-}
-Write-Host "=========================================" -ForegroundColor Cyan
-Write-Host ""
-
-$versionChoice = Read-Host "Select version number (1-$($versions.Count)) or press Enter for latest"
-
-# Default to 1 if empty
-if ([string]::IsNullOrWhiteSpace($versionChoice)) {
-    $versionChoice = 1
-}
-
-# Validate and set version
-try {
-    $choiceNum = [int]$versionChoice
-    if ($choiceNum -ge 1 -and $choiceNum -le $versions.Count) {
-        $MINECRAFT_VERSION = $versions[$choiceNum - 1]
-        $DOWNLOAD_URL = $VERSION_URLS[$MINECRAFT_VERSION]
-        Write-Host "[OK] Selected version: $MINECRAFT_VERSION" -ForegroundColor Green
-    } else {
-        Write-Host "[WARNING] Invalid selection. Defaulting to latest version." -ForegroundColor Yellow
-        $MINECRAFT_VERSION = $versions[0]
-        $DOWNLOAD_URL = $VERSION_URLS[$MINECRAFT_VERSION]
+    
+    # Fallback to hardcoded list
+    if ($useFallback) {
+        Write-Host ""
+        Write-Host "Using fallback version list..." -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "Available Minecraft Versions (Latest 5):" -ForegroundColor Cyan
+        Write-Host "=========================================" -ForegroundColor Cyan
+        
+        $versions = $FALLBACK_VERSIONS.Keys | Sort-Object -Descending { [Version]($_ -replace '^(\d+\.\d+(\.\d+)?).*', '$1') }
+        $i = 1
+        foreach ($version in $versions) {
+            if ($i -eq 1) {
+                Write-Host "$i) $version (Latest)" -ForegroundColor Green
+            } else {
+                Write-Host "$i) $version"
+            }
+            $i++
+        }
+        Write-Host "=========================================" -ForegroundColor Cyan
+        Write-Host ""
+        
+        $versionChoice = Read-Host "Select version number (1-$($versions.Count)) or press Enter for latest"
+        
+        if ([string]::IsNullOrWhiteSpace($versionChoice)) {
+            $versionChoice = 1
+        }
+        
+        try {
+            $choiceNum = [int]$versionChoice
+            if ($choiceNum -ge 1 -and $choiceNum -le $versions.Count) {
+                $script:MINECRAFT_VERSION = $versions[$choiceNum - 1]
+                $script:DOWNLOAD_URL = $FALLBACK_VERSIONS[$script:MINECRAFT_VERSION]
+                Write-Host "[OK] Selected version: $($script:MINECRAFT_VERSION)" -ForegroundColor Green
+            } else {
+                Write-Host "[WARNING] Invalid selection. Defaulting to latest version." -ForegroundColor Yellow
+                $script:MINECRAFT_VERSION = $versions[0]
+                $script:DOWNLOAD_URL = $FALLBACK_VERSIONS[$script:MINECRAFT_VERSION]
+            }
+        } catch {
+            Write-Host "[WARNING] Invalid input. Defaulting to latest version." -ForegroundColor Yellow
+            $script:MINECRAFT_VERSION = $versions[0]
+            $script:DOWNLOAD_URL = $FALLBACK_VERSIONS[$script:MINECRAFT_VERSION]
+        }
     }
-} catch {
-    Write-Host "[WARNING] Invalid input. Defaulting to latest version." -ForegroundColor Yellow
-    $MINECRAFT_VERSION = $versions[0]
-    $DOWNLOAD_URL = $VERSION_URLS[$MINECRAFT_VERSION]
 }
+
+# Call version selection
+Select-MinecraftVersion
 
 Write-Host ""
 

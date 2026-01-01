@@ -1,6 +1,9 @@
 # Server directory created by setup script
 server/
 
+# Version cache file
+minecraft_versions.json
+
 # Temporary files
 *.log
 *.tmp

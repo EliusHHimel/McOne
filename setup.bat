@@ -11,27 +11,116 @@ set SCRIPT_DIR=%~dp0
 set SERVER_DIR=%SCRIPT_DIR%server
 set MINECRAFT_VERSION=
 set DOWNLOAD_URL=
+set VERSION_FETCHER=%SCRIPT_DIR%fetch_versions.py
 
-REM Available Minecraft versions
+REM Check if Python is available
+python --version >nul 2>&1
+if %ERRORLEVEL% EQU 0 (
+    set PYTHON_CMD=python
+    goto :version_selection
+)
+
+python3 --version >nul 2>&1
+if %ERRORLEVEL% EQU 0 (
+    set PYTHON_CMD=python3
+    goto :version_selection
+)
+
+REM Python not available, use fallback
+echo [WARNING] Python not found. Using fallback version list.
+goto :fallback_versions
+
+:version_selection
+REM Try to fetch versions using Python
+echo Fetching available Minecraft versions...
+%PYTHON_CMD% "%VERSION_FETCHER%" latest 5 >versions_temp.json 2>nul
+
+if %ERRORLEVEL% NEQ 0 (
+    echo [WARNING] Failed to fetch versions. Using fallback list.
+    del versions_temp.json 2>nul
+    goto :fallback_versions
+)
+
+REM Display versions from JSON (simplified - show latest 5)
 echo.
-echo Available Minecraft Versions:
+echo Available Minecraft Versions (Latest 5):
+echo =========================================
+echo 1) Latest version (auto-detected)
+echo 2) Second latest
+echo 3) Third latest
+echo 4) Fourth latest
+echo 5) Fifth latest
+echo 6) Enter version manually
+echo =========================================
+echo.
+
+set /p VERSION_CHOICE="Select version number (1-6) or press Enter for latest: "
+
+if "%VERSION_CHOICE%"=="" set VERSION_CHOICE=1
+
+if "%VERSION_CHOICE%"=="6" goto :manual_entry
+
+REM Get version from JSON based on choice
+for /f "tokens=*" %%a in ('%PYTHON_CMD% -c "import json; data=json.load(open('versions_temp.json')); v=data['versions'][min(%VERSION_CHOICE%-1, len(data['versions'])-1)]; print(v['id'])"') do set MINECRAFT_VERSION=%%a
+for /f "tokens=*" %%a in ('%PYTHON_CMD% -c "import json; data=json.load(open('versions_temp.json')); v=data['versions'][min(%VERSION_CHOICE%-1, len(data['versions'])-1)]; print(v['url'])"') do set DOWNLOAD_URL=%%a
+
+del versions_temp.json 2>nul
+echo [OK] Selected version: %MINECRAFT_VERSION%
+echo.
+goto :check_java
+
+:manual_entry
+del versions_temp.json 2>nul
+:manual_entry_loop
+set /p MANUAL_VERSION="Enter Minecraft version (e.g., 1.19.4): "
+
+if "%MANUAL_VERSION%"=="" (
+    echo [ERROR] Version cannot be empty
+    goto :manual_entry_loop
+)
+
+echo Searching for version %MANUAL_VERSION%...
+%PYTHON_CMD% "%VERSION_FETCHER%" find %MANUAL_VERSION% >version_info.json 2>nul
+
+if %ERRORLEVEL% NEQ 0 (
+    echo [ERROR] Version %MANUAL_VERSION% was not found.
+    echo The version might be incorrect or unavailable.
+    del version_info.json 2>nul
+    set /p RETRY="Try another version? (y/n): "
+    if /i "%RETRY%"=="y" goto :manual_entry_loop
+    goto :fallback_versions
+)
+
+for /f "tokens=*" %%a in ('%PYTHON_CMD% -c "import json; data=json.load(open('version_info.json')); print(data.get('url', ''))"') do set DOWNLOAD_URL=%%a
+
+if "%DOWNLOAD_URL%"=="" (
+    echo [ERROR] Could not get download URL for version %MANUAL_VERSION%
+    del version_info.json 2>nul
+    set /p RETRY="Try another version? (y/n): "
+    if /i "%RETRY%"=="y" goto :manual_entry_loop
+    goto :fallback_versions
+)
+
+set MINECRAFT_VERSION=%MANUAL_VERSION%
+del version_info.json 2>nul
+echo [OK] Found version: %MINECRAFT_VERSION%
+echo.
+goto :check_java
+
+:fallback_versions
+REM Fallback version list
+echo.
+echo Available Minecraft Versions (Latest 5):
 echo =========================================
 echo 1) 1.20.4 (Latest)
 echo 2) 1.20.3
 echo 3) 1.20.2
 echo 4) 1.20.1
 echo 5) 1.20
-echo 6) 1.19.4
-echo 7) 1.19.3
-echo 8) 1.19.2
-echo 9) 1.19.1
-echo 10) 1.19
-echo 11) 1.18.2
-echo 12) 1.18.1
 echo =========================================
 echo.
 
-set /p VERSION_CHOICE="Select version number (1-12) or press Enter for latest: "
+set /p VERSION_CHOICE="Select version number (1-5) or press Enter for latest: "
 
 REM Default to 1 if empty
 if "%VERSION_CHOICE%"=="" set VERSION_CHOICE=1
@@ -52,27 +141,6 @@ if "%VERSION_CHOICE%"=="1" (
 ) else if "%VERSION_CHOICE%"=="5" (
     set MINECRAFT_VERSION=1.20
     set DOWNLOAD_URL=https://piston-data.mojang.com/v1/objects/15c777e2cfe0556eef19aab534b186c0c6f277e1/server.jar
-) else if "%VERSION_CHOICE%"=="6" (
-    set MINECRAFT_VERSION=1.19.4
-    set DOWNLOAD_URL=https://piston-data.mojang.com/v1/objects/8f3112a1049751cc472ec13e397eade5336ca7ae/server.jar
-) else if "%VERSION_CHOICE%"=="7" (
-    set MINECRAFT_VERSION=1.19.3
-    set DOWNLOAD_URL=https://piston-data.mojang.com/v1/objects/c9df48efed58511cdd0213c56b9013a7b5c9ac1f/server.jar
-) else if "%VERSION_CHOICE%"=="8" (
-    set MINECRAFT_VERSION=1.19.2
-    set DOWNLOAD_URL=https://piston-data.mojang.com/v1/objects/f69c284232d7c7580bd89a5a4931c3581eae1378/server.jar
-) else if "%VERSION_CHOICE%"=="9" (
-    set MINECRAFT_VERSION=1.19.1
-    set DOWNLOAD_URL=https://piston-data.mojang.com/v1/objects/8399e1211e95faa421c1507b322dbeae86d604df/server.jar
-) else if "%VERSION_CHOICE%"=="10" (
-    set MINECRAFT_VERSION=1.19
-    set DOWNLOAD_URL=https://piston-data.mojang.com/v1/objects/e00c4052dac1d59a1188b2aa9d5a87113aaf1122/server.jar
-) else if "%VERSION_CHOICE%"=="11" (
-    set MINECRAFT_VERSION=1.18.2
-    set DOWNLOAD_URL=https://piston-data.mojang.com/v1/objects/c8f83c5655308435b3dcf03c06d9fe8740a77469/server.jar
-) else if "%VERSION_CHOICE%"=="12" (
-    set MINECRAFT_VERSION=1.18.1
-    set DOWNLOAD_URL=https://piston-data.mojang.com/v1/objects/125e5adf40c659fd3bce3e66e67a16bb49ecc1b9/server.jar
 ) else (
     echo [ERROR] Invalid selection. Defaulting to latest version.
     set MINECRAFT_VERSION=1.20.4
@@ -82,6 +150,7 @@ if "%VERSION_CHOICE%"=="1" (
 echo [OK] Selected version: %MINECRAFT_VERSION%
 echo.
 
+:check_java
 REM Check if Java is installed
 echo Checking for Java installation...
 java -version >nul 2>&1

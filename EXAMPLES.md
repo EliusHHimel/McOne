@@ -11,8 +11,8 @@ cd McOne
 
 # Run setup (one command!)
 bash setup.sh
-# You'll be prompted to select a Minecraft version
-# Press Enter to use the latest version or enter a number (1-12)
+# The script will automatically fetch the latest 5 versions
+# You can press Enter for the latest, select 1-5, or choose option 6 to enter a version manually
 ```
 
 ## For macOS Users
@@ -24,8 +24,8 @@ cd McOne
 
 # Run setup (one command!)
 bash setup.sh
-# You'll be prompted to select a Minecraft version
-# Press Enter to use the latest version or enter a number (1-12)
+# The script will automatically fetch the latest 5 versions
+# You can press Enter for the latest, select 1-5, or choose option 6 to enter a version manually
 ```
 
 ## For Windows Users (Command Prompt)
@@ -37,8 +37,8 @@ cd McOne
 
 REM Run setup (one command!)
 setup.bat
-REM You'll be prompted to select a Minecraft version
-REM Press Enter to use the latest version or enter a number (1-12)
+REM The script will try to fetch versions if Python is installed
+REM Otherwise it will use a fallback list
 ```
 
 ## For Windows Users (PowerShell)
@@ -50,35 +50,71 @@ cd McOne
 
 # Run setup (one command!)
 .\setup.ps1
-# You'll be prompted to select a Minecraft version
-# Press Enter to use the latest version or enter a number (1-12)
+# The script will automatically fetch versions if Python is available
+# You can select from the list or enter a version manually
 ```
 
 ## Version Selection Example
 
-When you run the setup script, you'll see:
+When you run the setup script (with Python 3 installed), you'll see something like:
 
 ```
-Available Minecraft Versions:
+Fetching available Minecraft versions...
+
+Available Minecraft Versions (Latest 5):
+=========================================
+1) 1.21.11 (Latest)
+2) 1.21.10
+3) 1.21.9
+4) 1.21.8
+5) 1.21.7
+6) Enter version manually
+=========================================
+
+Select version number (1-6) or press Enter for latest:
+```
+
+### Options:
+- **Press Enter** → Automatically selects the latest version
+- **Type 1-5** → Selects one of the displayed versions
+- **Type 6** → Lets you enter any Minecraft version manually
+
+### Manual Entry Example:
+
+If you choose option 6, you'll see:
+
+```
+Enter Minecraft version (e.g., 1.19.4): 1.19.4
+Searching for version 1.19.4...
+[OK] Found version: 1.19.4
+```
+
+The script will:
+1. Search Mojang's official version manifest
+2. If not found, search jars.vexyhost.com
+3. If not found, try common URL patterns
+4. If still not found, report that the version doesn't exist
+
+## Without Python
+
+If Python 3 is not installed, you'll see:
+
+```
+Python 3 is not installed. Using fallback version list.
+
+Available Minecraft Versions (Latest 5):
 =========================================
 1) 1.20.4 (Latest)
 2) 1.20.3
 3) 1.20.2
 4) 1.20.1
 5) 1.20
-6) 1.19.4
-7) 1.19.3
-8) 1.19.2
-9) 1.19.1
-10) 1.19
-11) 1.18.2
-12) 1.18.1
 =========================================
 
-Select version number (1-12) or press Enter for latest:
+Select version number (1-5) or press Enter for latest:
 ```
 
-Simply press Enter for the latest version, or type a number (1-12) to choose a specific version.
+This fallback list is updated periodically and includes the most stable recent versions.
 
 ## Starting the Server After Setup
 
