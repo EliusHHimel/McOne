@@ -8,9 +8,10 @@ McOne is a simple, cross-platform Minecraft server setup utility that automates 
 
 - 🚀 **One-Command Setup**: Get your server running with a single command
 - 🌍 **Cross-Platform**: Works on Linux, macOS, and Windows
+- 🎯 **Version Selection**: Choose from multiple Minecraft server versions (1.18.1 - 1.20.4)
 - ☕ **Java Detection**: Automatically detects Java installation and provides guidance
 - ⚙️ **Auto-Configuration**: Creates all necessary configuration files
-- 📦 **Latest Version**: Downloads the latest stable Minecraft server
+- 📦 **Latest Version**: Downloads the latest stable Minecraft server or your chosen version
 - 🎮 **Ready to Play**: Server is ready to start immediately after setup
 
 ## Quick Start
@@ -53,12 +54,31 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 The setup script will:
 
 1. ✅ Detect your operating system
-2. ✅ Check for Java installation (offers to install if missing on Linux/macOS)
-3. ✅ Create a `server` directory
-4. ✅ Download the latest Minecraft server JAR file
-5. ✅ Accept the Minecraft EULA
-6. ✅ Create a default `server.properties` configuration
-7. ✅ Generate launch scripts for your platform
+2. ✅ Prompt you to select a Minecraft server version (or use the latest)
+3. ✅ Check for Java installation (offers to install if missing on Linux/macOS)
+4. ✅ Create a `server` directory
+5. ✅ Download your chosen Minecraft server JAR file
+6. ✅ Accept the Minecraft EULA
+7. ✅ Create a default `server.properties` configuration
+8. ✅ Generate launch scripts for your platform
+
+## Supported Minecraft Versions
+
+The setup script supports the following Minecraft server versions:
+- 1.20.4 (Latest)
+- 1.20.3
+- 1.20.2
+- 1.20.1
+- 1.20
+- 1.19.4
+- 1.19.3
+- 1.19.2
+- 1.19.1
+- 1.19
+- 1.18.2
+- 1.18.1
+
+During setup, you'll be prompted to select a version from an interactive menu.
 
 ## Starting Your Server
 

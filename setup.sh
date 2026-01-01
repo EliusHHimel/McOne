@@ -8,21 +8,78 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SERVER_DIR="$SCRIPT_DIR/server"
-MINECRAFT_VERSION="1.20.4"
-# Note: Update this URL when new versions are released
-# Get the latest server URL from: https://www.minecraft.net/en-us/download/server
-DOWNLOAD_URL="https://piston-data.mojang.com/v1/objects/8dd1a28015f51b1803213892b50b7b4fc76e594d/server.jar"
+MINECRAFT_VERSION=""
+DOWNLOAD_URL=""
+
+# Minecraft version mappings
+# Note: Add new versions here as they are released
+declare -A VERSION_URLS=(
+    ["1.20.4"]="https://piston-data.mojang.com/v1/objects/8dd1a28015f51b1803213892b50b7b4fc76e594d/server.jar"
+    ["1.20.3"]="https://piston-data.mojang.com/v1/objects/4fb536bfd4a83d61cdbaf684b8d311e66e7d4c49/server.jar"
+    ["1.20.2"]="https://piston-data.mojang.com/v1/objects/5b868151bd02b41319f54c8d4061b8cae84e665c/server.jar"
+    ["1.20.1"]="https://piston-data.mojang.com/v1/objects/84194a2f286ef7c14ed7ce0090dba59902951553/server.jar"
+    ["1.20"]="https://piston-data.mojang.com/v1/objects/15c777e2cfe0556eef19aab534b186c0c6f277e1/server.jar"
+    ["1.19.4"]="https://piston-data.mojang.com/v1/objects/8f3112a1049751cc472ec13e397eade5336ca7ae/server.jar"
+    ["1.19.3"]="https://piston-data.mojang.com/v1/objects/c9df48efed58511cdd0213c56b9013a7b5c9ac1f/server.jar"
+    ["1.19.2"]="https://piston-data.mojang.com/v1/objects/f69c284232d7c7580bd89a5a4931c3581eae1378/server.jar"
+    ["1.19.1"]="https://piston-data.mojang.com/v1/objects/8399e1211e95faa421c1507b322dbeae86d604df/server.jar"
+    ["1.19"]="https://piston-data.mojang.com/v1/objects/e00c4052dac1d59a1188b2aa9d5a87113aaf1122/server.jar"
+    ["1.18.2"]="https://piston-data.mojang.com/v1/objects/c8f83c5655308435b3dcf03c06d9fe8740a77469/server.jar"
+    ["1.18.1"]="https://piston-data.mojang.com/v1/objects/125e5adf40c659fd3bce3e66e67a16bb49ecc1b9/server.jar"
+)
 
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 echo "========================================="
 echo "  McOne - Minecraft Server Setup"
 echo "========================================="
 echo ""
+
+# Select Minecraft version
+select_version() {
+    echo ""
+    echo "Available Minecraft Versions:"
+    echo "========================================="
+    
+    # Sort versions and display
+    local versions=($(echo "${!VERSION_URLS[@]}" | tr ' ' '\n' | sort -V -r))
+    local i=1
+    for version in "${versions[@]}"; do
+        if [ $i -eq 1 ]; then
+            echo -e "${CYAN}$i) $version (Latest)${NC}"
+        else
+            echo "$i) $version"
+        fi
+        ((i++))
+    done
+    echo "========================================="
+    echo ""
+    
+    # Prompt user for selection
+    while true; do
+        read -p "Select version number (1-${#versions[@]}) or press Enter for latest: " choice
+        
+        # Default to latest if empty
+        if [ -z "$choice" ]; then
+            choice=1
+        fi
+        
+        # Validate choice
+        if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le "${#versions[@]}" ]; then
+            MINECRAFT_VERSION="${versions[$((choice-1))]}"
+            DOWNLOAD_URL="${VERSION_URLS[$MINECRAFT_VERSION]}"
+            echo -e "${GREEN}Selected version: $MINECRAFT_VERSION${NC}"
+            break
+        else
+            echo -e "${RED}Invalid selection. Please enter a number between 1 and ${#versions[@]}${NC}"
+        fi
+    done
+}
 
 # Detect OS
 detect_os() {
@@ -193,6 +250,7 @@ EOF
 # Main setup function
 main() {
     detect_os
+    select_version
     
     if ! check_java; then
         read -p "Do you want to install Java automatically? (y/n) " -n 1 -r
